@@ -19,7 +19,7 @@ git clone 'https://github.com/blend-os/blend-inst'
 #    which will simply print out the commands that will run in a true
 #    installation, instead of actually running them.
 
-./blend-inst config 'sample-config.json'
+TESTING_INST=true ./blend-inst config 'sample-config.json'
 ```
 
 ## For distributors
@@ -31,7 +31,7 @@ Jade-GUI, developed by Crystal Linux, can be used with blend-inst.
 ### Error codes:
 
 * `1` - Partitioning error
-* `2` - Username not allowed
+* `3` - Username not allowed
 
 ## Contributing
 
