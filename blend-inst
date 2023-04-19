@@ -195,6 +195,7 @@ def inst_setup_base(config):
     enable_service('bluetooth')
     enable_service('cups')
     # Enable blend-files
+    enable_service('blend-system')
     enable_user_service('blend-files')
     # Add blend hook
     exec_chroot(['bash', '-c', 'echo \'MODULES=""\' > /etc/mkinitcpio.conf'])
