@@ -201,7 +201,7 @@ def inst_setup_base(config):
     exec_chroot(['bash', '-c', 'echo \'MODULES=""\' > /etc/mkinitcpio.conf'])
     exec_chroot(['bash', '-c', 'echo \'BINARIES=""\' >> /etc/mkinitcpio.conf'])
     exec_chroot(['bash', '-c', 'echo \'FILES=""\' >> /etc/mkinitcpio.conf'])
-    exec_chroot(['bash', '-c', 'echo \'HOOKS="base udev autodetect modconf block keyboard keymap consolefont filesystems fsck blend"\' >> /etc/mkinitcpio.conf'])
+    exec_chroot(['bash', '-c', 'echo \'HOOKS="base udev plymouth autodetect modconf block keyboard keymap consolefont filesystems fsck blend"\' >> /etc/mkinitcpio.conf'])
     exec_chroot(
         ['bash', '-c', 'echo \'COMPRESSION="zstd"\' >> /etc/mkinitcpio.conf'])
     # Generate fstab
