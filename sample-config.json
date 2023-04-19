@@ -1,0 +1,35 @@
+{
+    "partition": {
+        "device": "/dev/randomdisk",
+        "mode": "Auto",
+        "efi": true,
+        "partitions": [
+            "none:/dev/randomdisk1:don't format"
+        ]
+    },
+    "bootloader": {
+        "type": "grub-efi",
+        "location": "/boot/efi"
+    },
+    "locale": {
+        "locale": [
+            "en_US.UTF-8 UTF-8"
+        ],
+        "keymap": "us",
+        "timezone": "GMT"
+    },
+    "networking": {
+        "hostname": "blend",
+        "ipv6": false
+    },
+    "users": [
+        {
+            "name": "user",
+            "password": "SOME_ENCRYPTED_PASSWORD",
+            "hasroot": true,
+            "shell": "bash"
+        }
+    ],
+    "flatpak": true,
+    "kernel": "linux"
+}

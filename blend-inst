@@ -1,0 +1,335 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2023 Rudra Saraswat
+# Licensed under GPL-3.0.
+
+# Error codes
+# 1 - Partitioning error
+# 3 - Username not allowed
+
+import os
+import sys
+import json
+import signal
+import subprocess
+
+if os.environ.get('TESTING_INST') == 'true':
+    testing = True
+else:
+    testing = False
+
+# State variables
+mountpoints = []
+
+########################################################################################
+# Helper utils
+
+
+def preexec():
+    signal.signal(signal.SIGHUP, signal.SIG_IGN)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGQUIT, signal.SIG_IGN)
+
+
+def exec(cmd):
+    if testing:
+        print(' '.join(cmd))
+    else:
+        subprocess.call(cmd, shell=False, stdout=sys.stdout,
+                        stderr=sys.stderr, preexec_fn=preexec)
+
+
+def exec_chroot(cmd):
+    chroot_cmd = ['arch-chroot', '/mnt']
+    chroot_cmd += cmd
+    exec(chroot_cmd)
+
+
+def install_pkgs(*arg):
+    exec_chroot(['pacman', '--noconfirm', '-S', *arg])
+
+
+def enable_service(service):
+    exec_chroot(['systemctl', 'enable', service])
+
+
+def enable_user_service(service):
+    exec_chroot(['systemctl', '--global', 'enable', service])
+
+
+def mount(part, path):
+    exec(['mount', part, path])
+
+
+def mkdir(path):
+    exec(['mkdir', '-p', path])
+
+
+########################################################################################
+# Filesystem
+
+
+def format_and_mount(mountpoint, filesystem, blockdevice):
+    if filesystem == 'vfat':
+        exec(['mkfs.vfat', '-F32', blockdevice])
+    elif filesystem == 'bfs':
+        exec(['mkfs.bfs', blockdevice])
+    elif filesystem == 'cramfs':
+        exec(['mkfs.cramfs', blockdevice])
+    elif filesystem == 'ext3':
+        exec(['mkfs.ext3', blockdevice])
+    elif filesystem == 'fat':
+        exec(['mkfs.fat', blockdevice])
+    elif filesystem == 'msdos':
+        exec(['mkfs.msdos', blockdevice])
+    elif filesystem == 'xfs':
+        exec(['mkfs.xfs', blockdevice])
+    elif filesystem == 'btrfs':
+        exec(['mkfs.btrfs', '-f', blockdevice])
+    elif filesystem == 'ext2':
+        exec(['mkfs.ext2', blockdevice])
+    elif filesystem == 'ext4':
+        exec(['mkfs.ext4', blockdevice])
+    elif filesystem == 'minix':
+        exec(['mkfs.minix', blockdevice])
+    elif filesystem == 'f2fs':
+        exec(['mkfs.f2fs', blockdevice])
+    elif filesystem == 'don\'t format':
+        print(f'Not formatting {blockdevice}.')
+    elif filesystem == 'noformat':
+        print(f'Not formatting {blockdevice}.')
+
+    if mountpoint in mountpoints:
+        print()
+        print(
+            f'Invalid manual partitioning configuration. There are multiple partitions with the mount point {mountpoint}.')
+        sys.exit(1)
+
+    if mountpoint != 'none':
+        mkdir(mountpoint)
+        mountpoints.append(mountpoint)
+        mount(blockdevice, mountpoint)
+
+
+def inst_partition(config):
+    try:
+        config['partition']
+    except:
+        return
+
+    device = config['partition']['device']
+    mode = config['partition']['mode']
+    efi = config['partition']['efi']
+    partitions = config['partition']['partitions']
+
+    if mode == 'Auto':
+        if efi:
+            # Create GPT label
+            exec(['parted', '-s', device, 'mklabel', 'gpt'])
+            # Create EFI partition
+            exec(['parted', '-s', device, 'mkpart', 'fat32', '0', '300'])
+        else:
+            # Create msdos label
+            exec(['parted', '-s', device, 'mklabel', 'msdos'])
+            # Create boot partition
+            exec(['parted', '-s', device, 'mkpart',
+                 'primary', 'ext4', '1MIB', '512MIB'])
+
+        # Create root partition
+        exec(['parted', '-s', device, 'mkpart',
+             'primary', 'ext4', '512MB', '100%'])
+
+        if 'nvme' in device or 'mmcblk' in device:
+            # Format EFI/boot partition
+            if efi:
+                exec(['mkfs.vfat', '-F32', f'{device}p1'])
+            else:
+                exec(['mkfs.ext4', f'{device}p1'])
+            # Format root partition
+            exec(['mkfs.ext4', f'{device}p2'])
+            # Mount partitions
+            mount(f'{device}p2', '/mnt')
+            if efi:
+                mkdir('/mnt/boot/efi')
+                mount(f'{device}p1', '/mnt/boot/efi')
+            else:
+                mkdir('/mnt/boot')
+                mount(f'{device}p1', '/mnt/boot')
+        else:
+            # Format EFI/boot partition
+            if efi:
+                exec(['mkfs.vfat', '-F32', f'{device}1'])
+            else:
+                exec(['mkfs.ext4', f'{device}1'])
+            # Format root partition
+            exec(['mkfs.ext4', f'{device}2'])
+            # Mount partitions
+            mount(f'{device}2', '/mnt')
+            if efi:
+                mkdir('/mnt/boot/efi')
+                mount(f'{device}1', '/mnt/boot/efi')
+            else:
+                mkdir('/mnt/boot')
+                mount(f'{device}1', '/mnt/boot')
+    else:
+        partitions.sort(key=lambda x: len(x[1]))
+        for p in partitions:
+            mountpoint = p.split(':')[0]
+            filesystem = p.split(':')[2]
+            blockdevice = p.split(':')[1]
+            format_and_mount(mountpoint, filesystem, blockdevice)
+        if '/mnt' not in mountpoints or '/mnt/' not in mountpoints:
+            print()
+            print('Invalid manual partitioning configuration. There must be a partition with its mount point as /.')
+            sys.exit(1)
+
+
+########################################################################################
+# Setup base
+
+
+def inst_setup_base(config):
+    exec(['unsquashfs', '-f', '-d', '/mnt',
+         '/run/archiso/bootmnt/blend/x86_64/airootfs.sfs'])
+    # Enable system services
+    enable_service('bluetooth')
+    enable_service('cups')
+    # Enable blend-files
+    enable_user_service('blend-files')
+    # Add blend hook
+    exec_chroot(['bash', '-c', 'echo \'MODULES=""\' > /etc/mkinitcpio.conf'])
+    exec_chroot(['bash', '-c', 'echo \'BINARIES=""\' >> /etc/mkinitcpio.conf'])
+    exec_chroot(['bash', '-c', 'echo \'FILES=""\' >> /etc/mkinitcpio.conf'])
+    exec_chroot(['bash', '-c', 'echo \'HOOKS="base udev autodetect modconf block keyboard keymap consolefont filesystems fsck blend"\' >> /etc/mkinitcpio.conf'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'COMPRESSION="zstd"\' >> /etc/mkinitcpio.conf'])
+    # Generate fstab
+    exec(['bash', '-c', 'genfstab -U /mnt > /mnt/etc/fstab'])
+    # Refresh package lists, pacman-key --init
+    exec_chroot(['pacman', '-Sy'])
+    exec_chroot(['pacman-key', '--init'])
+    exec_chroot(['pacman-key', '--populate', 'archlinux'])
+    exec_chroot(['pacman-key', '--populate', 'blend'])
+    exec_chroot(['pacman-key', '--populate', 'chaotic'])
+    if config['flatpak']:
+        install_pkgs('flatpak')
+    # Install kernel
+    install_pkgs(config['kernel'])
+
+
+def inst_bootloader(config):
+    # Install GRUB
+    install_pkgs('grub', 'os-prober')
+    # Install bootloader
+    if config['bootloader']['type'] == 'grub-efi':
+        install_pkgs('efibootmgr')
+        exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
+                     '--bootloader-id=blend', '--removable'])
+        exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
+                     '--bootloader-id=blend'])
+    else:
+        exec_chroot(['grub-install', '--target=i386-pc',
+                    config["bootloader"]["location"]])
+    # Generate grub.cfg
+    exec_chroot(['grub-mkconfig', '-o', '/boot/grub/grub.cfg'])
+
+
+########################################################################################
+# Locale
+
+
+def inst_locale(config):
+    # Set locale
+    exec_chroot(['bash', '-c', 'echo \'en_US.UTF-8 UTF-8\' > /etc/locale.gen'])
+    exec_chroot(['bash', '-c', 'echo \'LANG=en_US.UTF-8\' > /etc/locale.conf'])
+    for locale in config['locale']['locale']:
+        exec_chroot(['bash', '-c', f'echo \'{locale}\' >> /etc/locale.gen'])
+        if locale.split()[0] != 'en_US.UTF-8':
+            exec_chroot(
+                ['sed', '-i', f's/en_US.UTF-8/{locale.split()[0]}/g', '/etc/locale.conf'])
+    exec_chroot(['locale-gen'])
+
+    # Set keyboard layout
+    exec_chroot(
+        ['bash', '-c', f'echo \'KEYMAP={config["locale"]["keymap"]}\' > /etc/vconsole.conf'])
+
+    # Set timezone
+    exec_chroot(
+        ['ln', '-sf', f'/usr/share/zoneinfo/{config["locale"]["timezone"]}', '/etc/localtime'])
+
+
+########################################################################################
+# Networking
+
+
+def inst_networking(config):
+    # Set hostname
+    exec_chroot(
+        ['bash', '-c', f'echo \'{config["networking"]["hostname"]}\' > /etc/hostname'])
+
+    # Create hosts file
+    exec_chroot(['bash', '-c', 'echo \'127.0.0.1     localhost\' > /etc/hosts'])
+
+    if config['networking']['ipv6']:
+        # Enable ipv6
+        exec_chroot(['bash', '-c', 'echo \'::1 localhost\' > /etc/hosts'])
+
+
+########################################################################################
+# Users
+
+
+def inst_users(config):
+    # Create sudoers
+    exec_chroot(['bash', '-c', 'userdel -r blend &>/dev/null'])
+    exec_chroot(
+        ['bash', '-c', 'echo "root ALL=(ALL:ALL) ALL" > /etc/sudoers'])
+    exec_chroot(
+        ['bash', '-c', 'echo "%wheel ALL=(ALL:ALL) ALL" >> /etc/sudoers'])
+    exec_chroot(
+        ['bash', '-c', 'echo "Defaults pwfeedback" >> /etc/sudoers']
+    )
+    # Add users
+    for user in config['users']:
+        if user['name'] == 'blend':
+            print()
+            print('The username blend is not allowed.')
+            sys.exit(3)
+
+        exec_chroot(['useradd', '-m', '-s', '/bin/bash',
+                    '-p', user['password'].replace('\n', ''), user['name']])
+        exec_chroot(['usermod', '-aG', 'wheel', user['name']])
+        # Add AccountsService user file
+        mkdir('/mnt/var/lib/AccountsService/users')
+        exec_chroot(
+            ['bash', '-c', f'echo "[User]" > /var/lib/AccountsService/users/{user["name"]}'])
+        exec_chroot(
+            ['bash', '-c', f'echo "SystemAccount=false" >> /var/lib/AccountsService/users/{user["name"]}'])
+
+
+########################################################################################
+
+
+signal.signal(signal.SIGHUP, signal.SIG_IGN)
+signal.signal(signal.SIGINT, signal.SIG_IGN)
+signal.signal(signal.SIGQUIT, signal.SIG_IGN)
+
+
+try:
+    if sys.argv[1] == 'config' and os.path.isfile(sys.argv[2]):
+        with open(sys.argv[2]) as config_file:
+            config = json.load(config_file)
+            inst_partition(config)
+            inst_setup_base(config)
+            inst_bootloader(config)
+            inst_locale(config)
+            inst_networking(config)
+            inst_users(config)
+
+        print()
+        print('========================')
+        print('Successful installation.')
+
+        sys.exit()
+except IndexError:
+    pass
