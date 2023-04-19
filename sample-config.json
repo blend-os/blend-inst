@@ -26,7 +26,6 @@
         {
             "name": "user",
             "password": "SOME_ENCRYPTED_PASSWORD",
-            "hasroot": true,
             "shell": "bash"
         }
     ],
