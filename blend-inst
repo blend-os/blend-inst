@@ -216,6 +216,9 @@ def inst_setup_base(config):
         install_pkgs('flatpak')
     # Install kernel
     install_pkgs(config['kernel'])
+    # Install binder
+    install_pkgs('linux-headers')
+    install_pkgs('binder_linux-dkms')
     # Remove jade-gui and blend-inst
     exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui', 'blend-inst-git'])
     # Install blendos-first-setup
