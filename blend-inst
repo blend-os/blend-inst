@@ -178,7 +178,7 @@ def inst_partition(config):
             filesystem = p.split(':')[2]
             blockdevice = p.split(':')[1]
             format_and_mount(mountpoint, filesystem, blockdevice)
-        if '/mnt' not in mountpoints or '/mnt/' not in mountpoints:
+        if '/mnt' not in mountpoints and '/mnt/' not in mountpoints:
             print()
             print('Invalid manual partitioning configuration. There must be a partition with its mount point as /.')
             sys.exit(1)
@@ -189,8 +189,24 @@ def inst_partition(config):
 
 
 def inst_setup_base(config):
-    exec(['unsquashfs', '-f', '-d', '/mnt',
-         '/run/archiso/bootmnt/blend/x86_64/airootfs.sfs'])
+    if testing == False:
+        airootfs_files = [os.path.join(dirpath, filename)
+                     for (dirpath, dirs, files) in os.walk('/run/archiso')
+                     for filename in (dirs + files)]
+        airootfs_sfs = 'none'
+        for f in airootfs_files:
+            if os.path.basename(f) == 'airootfs.sfs':
+                airootfs_sfs = f
+                break
+        if airootfs_sfs == 'none':
+            print("====================")
+            print("Failed installation.")
+            sys.exit(1)
+        exec(['unsquashfs', '-f', '-d', '/mnt',
+              airootfs_sfs])
+    else:
+        exec(['unsquashfs', '-f', '-d', '/mnt',
+              '/run/archiso/bootmnt/blend/x86_64/airootfs.sfs'])
     # Enable system services
     enable_service('bluetooth')
     enable_service('cups')
