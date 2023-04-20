@@ -25,7 +25,7 @@
     "users": [
         {
             "name": "user",
-            "password": "SOME_ENCRYPTED_PASSWORD",
+            "password": "SOME_PLAINTEXT_PASSWORD",
             "shell": "bash"
         }
     ],

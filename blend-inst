@@ -217,7 +217,7 @@ def inst_setup_base(config):
     # Install kernel
     install_pkgs(config['kernel'])
     # Remove jade-gui and blend-inst
-    exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui', 'blend-inst'])
+    exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui', 'blend-inst-git'])
     # Install blendos-first-setup
     install_pkgs('blendos-first-setup-git')
 
@@ -294,6 +294,7 @@ def inst_users(config):
     exec_chroot(
         ['bash', '-c', 'echo "Defaults pwfeedback" >> /etc/sudoers']
     )
+
     # Add users
     for user in config['users']:
         if user['name'] == 'blend':
@@ -301,8 +302,8 @@ def inst_users(config):
             print('The username blend is not allowed.')
             sys.exit(3)
 
-        exec_chroot(['useradd', '-m', '-s', '/bin/bash',
-                    '-p', user['password'].replace('\n', ''), user['name']])
+        exec_chroot(['useradd', '-m', '-s', '/bin/bash', user['name']])
+        exec_chroot(['bash', '-c', f'echo \'{user["name"]}:{user["password"]}\' | chpasswd'])
         exec_chroot(['usermod', '-aG', 'wheel', user['name']])
         # Add AccountsService user file
         mkdir('/mnt/var/lib/AccountsService/users')
@@ -310,6 +311,13 @@ def inst_users(config):
             ['bash', '-c', f'echo "[User]" > /var/lib/AccountsService/users/{user["name"]}'])
         exec_chroot(
             ['bash', '-c', f'echo "SystemAccount=false" >> /var/lib/AccountsService/users/{user["name"]}'])
+
+    # Update display manager configuration
+    exec_chroot(
+        ['bash', '-c', 'echo "[Theme]" > /etc/sddm.conf.d/default.conf'])
+    exec_chroot(
+        ['bash', '-c', 'echo "Current=breeze" >> /etc/sddm.conf.d/default.conf'])
+    exec_chroot(['rm', '-f', '/etc/gdm/custom.conf'])
 
 
 ########################################################################################

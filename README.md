@@ -39,4 +39,4 @@ Anyone is free to contribute to blend-inst! It's licensed under the GPL-3.0 lice
 
 ## Credits
 
-blend-inst has been written by **Rudra Saraswat**. However, the code is inspired by Jade (written in **Rust**), since it's meant to be a drop-in replacement for Jade. Jade is a project developed by **Crystal Linux**.
+blend-inst has been written by Rudra Saraswat. However, the code is inspired by Jade (written in Rust), since it's meant to be a drop-in replacement for Jade. Jade is a project developed by **Crystal Linux**.
