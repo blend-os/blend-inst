@@ -191,8 +191,8 @@ def inst_partition(config):
 def inst_setup_base(config):
     if testing == False:
         airootfs_files = [os.path.join(dirpath, filename)
-                     for (dirpath, dirs, files) in os.walk('/run/archiso')
-                     for filename in (dirs + files)]
+                          for (dirpath, dirs, files) in os.walk('/run/archiso')
+                          for filename in (dirs + files)]
         airootfs_sfs = 'none'
         for f in airootfs_files:
             if os.path.basename(f) == 'airootfs.sfs':
@@ -245,6 +245,15 @@ def inst_bootloader(config):
     # Install GRUB
     install_pkgs('grub', 'os-prober')
     # Install bootloader
+    if 'NVIDIA' in subprocess.check_output(['lspci']).decode('utf-8'):
+        exec_chroot(
+            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} nvidia_drm.modeset=1 splash"\' >> /etc/default/grub'])
+        mkdir('/mnt/etc/udev/rules.d')
+        exec_chroot(['ln', '-s', '/dev/null',
+                    '/etc/udev/rules.d/61-gdm.rules'])
+    else:
+        exec_chroot(
+            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} splash"\' >> /etc/default/grub'])
     if config['bootloader']['type'] == 'grub-efi':
         install_pkgs('efibootmgr')
         exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
@@ -322,7 +331,8 @@ def inst_users(config):
             sys.exit(3)
 
         exec_chroot(['useradd', '-m', '-s', '/bin/bash', user['name']])
-        exec_chroot(['bash', '-c', f'echo \'{user["name"]}:{user["password"]}\' | chpasswd'])
+        exec_chroot(
+            ['bash', '-c', f'echo \'{user["name"]}:{user["password"]}\' | chpasswd'])
         exec_chroot(['usermod', '-aG', 'wheel', user['name']])
         # Add AccountsService user file
         mkdir('/mnt/var/lib/AccountsService/users')
