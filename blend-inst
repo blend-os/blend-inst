@@ -137,7 +137,7 @@ def inst_partition(config):
 
         # Create root partition
         exec(['parted', '-s', device, 'mkpart',
-             'primary', 'ext4', '512MB', '100%'])
+             'primary', 'ext4', '700MB', '100%'])
 
         if 'nvme' in device or 'mmcblk' in device:
             # Format EFI/boot partition
