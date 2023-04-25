@@ -127,13 +127,13 @@ def inst_partition(config):
             # Create GPT label
             exec(['parted', '-s', device, 'mklabel', 'gpt'])
             # Create EFI partition
-            exec(['parted', '-s', device, 'mkpart', 'fat32', '0', '300'])
+            exec(['parted', '-s', device, 'mkpart', 'fat32', '0', '500'])
         else:
             # Create msdos label
             exec(['parted', '-s', device, 'mklabel', 'msdos'])
             # Create boot partition
             exec(['parted', '-s', device, 'mkpart',
-                 'primary', 'ext4', '1MIB', '512MIB'])
+                 'primary', 'ext4', '1MIB', '600MIB'])
 
         # Create root partition
         exec(['parted', '-s', device, 'mkpart',
@@ -274,12 +274,13 @@ def inst_bootloader(config):
 def inst_locale(config):
     # Set locale
     exec_chroot(['bash', '-c', 'echo \'en_US.UTF-8 UTF-8\' > /etc/locale.gen'])
-    exec_chroot(['bash', '-c', 'echo \'LANG=en_US.UTF-8\' > /etc/locale.conf'])
+    first_locale = True
     for locale in config['locale']['locale']:
-        exec_chroot(['bash', '-c', f'echo \'{locale}\' >> /etc/locale.gen'])
-        if locale.split()[0] != 'en_US.UTF-8':
-            exec_chroot(
-                ['sed', '-i', f's/en_US.UTF-8/{locale.split()[0]}/g', '/etc/locale.conf'])
+        if locale != 'en_US.UTF-8 UTF-8':
+            exec_chroot(['bash', '-c', f'echo \'{locale}\' >> /etc/locale.gen'])
+        if first_locale:
+            exec_chroot(['bash', '-c', f'echo \'LANG={locale.split()[0]}\' > /etc/locale.conf'])
+            first_locale = False
     exec_chroot(['locale-gen'])
 
     # Set keyboard layout
