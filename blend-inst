@@ -122,6 +122,9 @@ def inst_partition(config):
     efi = config['partition']['efi']
     partitions = config['partition']['partitions']
 
+    # Delete partition table
+    exec(['dd', 'if=/dev/zero', f'of={device}', 'bs=512', 'count=1'])
+
     if mode == 'Auto':
         if efi:
             # Create GPT label
