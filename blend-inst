@@ -124,6 +124,7 @@ def inst_partition(config):
 
     # Delete partition table
     exec(['dd', 'if=/dev/zero', f'of={device}', 'bs=512', 'count=1'])
+    exec(['sync'])
 
     if mode == 'Auto':
         if efi:
