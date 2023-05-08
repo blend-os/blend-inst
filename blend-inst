@@ -45,10 +45,6 @@ def exec_chroot(cmd):
     exec(chroot_cmd)
 
 
-def install_pkgs(*arg):
-    exec_chroot(['pacman', '--noconfirm', '-S', *arg])
-
-
 def enable_service(service):
     exec_chroot(['systemctl', 'enable', service])
 
@@ -220,33 +216,46 @@ def inst_setup_base(config):
     exec_chroot(['bash', '-c', 'echo \'MODULES=""\' > /etc/mkinitcpio.conf'])
     exec_chroot(['bash', '-c', 'echo \'BINARIES=""\' >> /etc/mkinitcpio.conf'])
     exec_chroot(['bash', '-c', 'echo \'FILES=""\' >> /etc/mkinitcpio.conf'])
-    exec_chroot(['bash', '-c', 'echo \'HOOKS="base udev blend plymouth autodetect modconf block keyboard keymap consolefont filesystems fsck"\' >> /etc/mkinitcpio.conf'])
+    exec_chroot(['bash', '-c', 'echo \'HOOKS="base udev akshara plymouth autodetect modconf block keyboard keymap consolefont filesystems fsck"\' >> /etc/mkinitcpio.conf'])
     exec_chroot(
         ['bash', '-c', 'echo \'COMPRESSION="zstd"\' >> /etc/mkinitcpio.conf'])
     # Generate fstab
     exec(['bash', '-c', 'genfstab -U /mnt > /mnt/etc/fstab'])
     # Refresh package lists, pacman-key --init
-    exec_chroot(['pacman', '-Syu', '--noconfirm'])
     exec_chroot(['pacman-key', '--init'])
-    exec_chroot(['pacman-key', '--populate', 'archlinux'])
-    exec_chroot(['pacman-key', '--populate', 'blend'])
-    exec_chroot(['pacman-key', '--populate', 'chaotic'])
-    if config['flatpak']:
-        install_pkgs('flatpak')
-    # Install kernel
-    install_pkgs(config['kernel'])
-    # Install binder
-    install_pkgs('linux-headers')
-    install_pkgs('binder_linux-dkms')
+    exec_chroot(['pacman-key', '--populate', 'archlinux', 'blend'])
+    # Copy kernel
+    if testing == False:
+        airootfs_files = [os.path.join(dirpath, filename)
+                          for (dirpath, dirs, files) in os.walk('/run/archiso')
+                          for filename in (dirs + files)]
+        airootfs_kernel = 'none'
+        airootfs_initramfs = 'none'
+        airootfs_amd_ucode = 'none'
+        airootfs_intel_ucode = 'none'
+        for f in airootfs_files:
+            if os.path.basename(f) == 'vmlinuz-linux-zen':
+                airootfs_kernel = f
+            elif os.path.basename(f) == 'initramfs-linux-zen.img':
+                airootfs_initramfs = f
+            elif os.path.basename(f) == 'amd-ucode.img':
+                airootfs_amd_ucode = f
+            elif os.path.basename(f) == 'intel-ucode.img':
+                airootfs_intel_ucode = f
+        if 'none' in (airootfs_kernel, airootfs_initramfs, airootfs_amd_ucode, airootfs_intel_ucode):
+            print("====================")
+            print("Failed installation.")
+            sys.exit(1)
+        exec(['cp', airootfs_kernel, airootfs_initramfs,
+             airootfs_amd_ucode, airootfs_intel_ucode, '/mnt/boot'])
+    else:
+        exec(['cp', 'airootfs_kernel', 'airootfs_initramfs',
+             'airootfs_amd_ucode', 'airootfs_intel_ucode', '/mnt/boot'])
     # Remove jade-gui and blend-inst
     exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui', 'blend-inst-git'])
-    # Install blendos-first-setup
-    install_pkgs('blendos-first-setup-git')
 
 
 def inst_bootloader(config):
-    # Install GRUB
-    install_pkgs('grub-blend', 'os-prober')
     # Install bootloader
     if 'NVIDIA' in subprocess.check_output(['lspci']).decode('utf-8'):
         exec_chroot(
@@ -258,7 +267,6 @@ def inst_bootloader(config):
         exec_chroot(
             ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} splash"\' >> /etc/default/grub'])
     if config['bootloader']['type'] == 'grub-efi':
-        install_pkgs('efibootmgr')
         exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
                      '--bootloader-id=blend', '--removable'])
         exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
@@ -280,9 +288,11 @@ def inst_locale(config):
     first_locale = True
     for locale in config['locale']['locale']:
         if locale != 'en_US.UTF-8 UTF-8':
-            exec_chroot(['bash', '-c', f'echo \'{locale}\' >> /etc/locale.gen'])
+            exec_chroot(
+                ['bash', '-c', f'echo \'{locale}\' >> /etc/locale.gen'])
         if first_locale:
-            exec_chroot(['bash', '-c', f'echo \'LANG={locale.split()[0]}\' > /etc/locale.conf'])
+            exec_chroot(
+                ['bash', '-c', f'echo \'LANG={locale.split()[0]}\' > /etc/locale.conf'])
             first_locale = False
     exec_chroot(['locale-gen'])
 
