@@ -65,7 +65,9 @@ def mkdir(path):
 # Filesystem
 
 
-def format_and_mount(mountpoint, filesystem, blockdevice):
+def format_and_mount(config, mountpoint, filesystem, blockdevice):
+    efi = config['partition']['efi']
+
     if filesystem == 'vfat':
         exec(['mkfs.vfat', '-F32', blockdevice])
     elif filesystem == 'bfs':
@@ -102,6 +104,20 @@ def format_and_mount(mountpoint, filesystem, blockdevice):
         sys.exit(1)
 
     if mountpoint != 'none':
+        if mountpoint == 'System':
+            mountpoint = '/mnt/'
+        elif mountpoint == 'Boot':
+            if efi:
+                mountpoint = '/mnt/boot/efi/'
+            else:
+                mountpoint = '/mnt/boot/'
+        elif mountpoint == 'User':
+            mountpoint = '/mnt/home/'
+        else:
+            print()
+            print(
+                f'Invalid manual partitioning configuration.')
+            sys.exit(1)
         mkdir(mountpoint)
         mountpoints.append(mountpoint)
         mount(blockdevice, mountpoint)
@@ -177,10 +193,14 @@ def inst_partition(config):
             mountpoint = p.split(':')[0]
             filesystem = p.split(':')[2]
             blockdevice = p.split(':')[1]
-            format_and_mount(mountpoint, filesystem, blockdevice)
-        if '/mnt' not in mountpoints and '/mnt/' not in mountpoints:
+            format_and_mount(config, mountpoint, filesystem, blockdevice)
+        if '/mnt/' not in mountpoints:
             print()
-            print('Invalid manual partitioning configuration. There must be a partition with its mount point as /.')
+            print("Invalid manual partitioning configuration. There must be a 'System' partition.")
+            sys.exit(1)
+        if '/mnt/boot/' not in mountpoints and '/mnt/boot/efi/' not in mountpoints:
+            print()
+            print("Invalid manual partitioning configuration. There must be a 'Boot' partition.")
             sys.exit(1)
 
 
@@ -259,13 +279,13 @@ def inst_bootloader(config):
     # Install bootloader
     if 'NVIDIA' in subprocess.check_output(['lspci']).decode('utf-8'):
         exec_chroot(
-            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} nvidia_drm.modeset=1 splash"\' >> /etc/default/grub'])
+            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} nvidia_drm.modeset=1 quiet splash"\' >> /etc/default/grub'])
         mkdir('/mnt/etc/udev/rules.d')
         exec_chroot(['ln', '-s', '/dev/null',
                     '/etc/udev/rules.d/61-gdm.rules'])
     else:
         exec_chroot(
-            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} splash"\' >> /etc/default/grub'])
+            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} quiet splash"\' >> /etc/default/grub'])
     if config['bootloader']['type'] == 'grub-efi':
         exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
                      '--bootloader-id=blend', '--removable'])
@@ -345,6 +365,7 @@ def inst_users(config):
             sys.exit(3)
 
         exec_chroot(['useradd', '-m', '-s', '/bin/bash', user['name']])
+        exec_chroot(['usermod', '-c', user['fullname'], user['name']])
         exec_chroot(
             ['bash', '-c', f'echo \'{user["name"]}:{user["password"]}\' | chpasswd'])
         exec_chroot(['usermod', '-aG', 'wheel', user['name']])

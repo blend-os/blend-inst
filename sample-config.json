@@ -1,10 +1,11 @@
 {
     "partition": {
         "device": "/dev/randomdisk",
-        "mode": "Auto",
+        "mode": "Manual",
         "efi": true,
         "partitions": [
-            "none:/dev/randomdisk1:don't format"
+            "System:/dev/randomdisk1:ext4",
+            "Boot:/dev/randomdisk2:fat32"
         ]
     },
     "bootloader": {
