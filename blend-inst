@@ -244,6 +244,8 @@ def inst_setup_base(config):
     # Refresh package lists, pacman-key --init
     exec_chroot(['pacman-key', '--init'])
     exec_chroot(['pacman-key', '--populate', 'archlinux', 'blend'])
+    # Remove linux package, since we're using linux-zen
+    exec_chroot(['pacman', '-R', 'linux'])
     # Copy kernel
     if testing == False:
         airootfs_files = [os.path.join(dirpath, filename)
