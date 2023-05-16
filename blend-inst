@@ -244,8 +244,10 @@ def inst_setup_base(config):
     # Refresh package lists, pacman-key --init
     exec_chroot(['pacman-key', '--init'])
     exec_chroot(['pacman-key', '--populate', 'archlinux', 'blend'])
-    # Remove linux package, since we're using linux-zen
-    exec_chroot(['pacman', '-R', 'linux'])
+    # Remove linux
+    exec_chroot(['pacman', '-R', '--noconfirm', 'linux'])
+    # Run `mkinitcpio -P``
+    exec_chroot(['mkinitcpio', '-P'])
     # Copy kernel
     if testing == False:
         airootfs_files = [os.path.join(dirpath, filename)
@@ -281,13 +283,13 @@ def inst_bootloader(config):
     # Install bootloader
     if 'NVIDIA' in subprocess.check_output(['lspci']).decode('utf-8'):
         exec_chroot(
-            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} nvidia_drm.modeset=1 quiet splash"\' >> /etc/default/grub'])
+            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} vt.global_cursor_default=0 nvidia_drm.modeset=1 splash"\' >> /etc/default/grub'])
         mkdir('/mnt/etc/udev/rules.d')
         exec_chroot(['ln', '-s', '/dev/null',
                     '/etc/udev/rules.d/61-gdm.rules'])
     else:
         exec_chroot(
-            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} quiet splash"\' >> /etc/default/grub'])
+            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} vt.global_cursor_default=0 splash"\' >> /etc/default/grub'])
     if config['bootloader']['type'] == 'grub-efi':
         exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
                      '--bootloader-id=blend', '--removable'])
