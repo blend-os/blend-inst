@@ -228,6 +228,7 @@ def inst_setup_base(config):
         exec(['unsquashfs', '-f', '-d', '/mnt',
               '/run/archiso/bootmnt/blend/x86_64/airootfs.sfs'])
     # Enable system services
+    enable_service('akshara')
     enable_service('bluetooth')
     enable_service('cups')
     # Enable blend-files
