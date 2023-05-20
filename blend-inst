@@ -247,8 +247,6 @@ def inst_setup_base(config):
     exec_chroot(['pacman-key', '--populate', 'archlinux', 'blend'])
     # Remove linux
     exec_chroot(['pacman', '-R', '--noconfirm', 'linux'])
-    # Run `mkinitcpio -P``
-    exec_chroot(['mkinitcpio', '-P'])
     # Copy kernel
     if testing == False:
         airootfs_files = [os.path.join(dirpath, filename)
@@ -276,6 +274,8 @@ def inst_setup_base(config):
     else:
         exec(['cp', 'airootfs_kernel', 'airootfs_initramfs',
              'airootfs_amd_ucode', 'airootfs_intel_ucode', '/mnt/boot'])
+    # Run `mkinitcpio -P``
+    exec_chroot(['mkinitcpio', '-P'])
     # Remove jade-gui and blend-inst
     exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui', 'blend-inst-git'])
 
