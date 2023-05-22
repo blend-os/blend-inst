@@ -245,37 +245,8 @@ def inst_setup_base(config):
     # Refresh package lists, pacman-key --init
     exec_chroot(['pacman-key', '--init'])
     exec_chroot(['pacman-key', '--populate', 'archlinux', 'blend'])
-    # Remove linux
-    exec_chroot(['pacman', '-R', '--noconfirm', 'linux'])
-    # Copy kernel
-    if testing == False:
-        airootfs_files = [os.path.join(dirpath, filename)
-                          for (dirpath, dirs, files) in os.walk('/run/archiso')
-                          for filename in (dirs + files)]
-        airootfs_kernel = 'none'
-        airootfs_initramfs = 'none'
-        airootfs_amd_ucode = 'none'
-        airootfs_intel_ucode = 'none'
-        for f in airootfs_files:
-            if os.path.basename(f) == 'vmlinuz-linux-zen':
-                airootfs_kernel = f
-            elif os.path.basename(f) == 'initramfs-linux-zen.img':
-                airootfs_initramfs = f
-            elif os.path.basename(f) == 'amd-ucode.img':
-                airootfs_amd_ucode = f
-            elif os.path.basename(f) == 'intel-ucode.img':
-                airootfs_intel_ucode = f
-        if 'none' in (airootfs_kernel, airootfs_initramfs, airootfs_amd_ucode, airootfs_intel_ucode):
-            print("====================")
-            print("Failed installation.")
-            sys.exit(1)
-        exec(['cp', airootfs_kernel, airootfs_initramfs,
-             airootfs_amd_ucode, airootfs_intel_ucode, '/mnt/boot'])
-    else:
-        exec(['cp', 'airootfs_kernel', 'airootfs_initramfs',
-             'airootfs_amd_ucode', 'airootfs_intel_ucode', '/mnt/boot'])
-    # Run `mkinitcpio -P``
-    exec_chroot(['mkinitcpio', '-P'])
+    # Install linux-zen
+    exec_chroot(['pacman', '-S', '--noconfirm', 'linux-zen'])
     # Remove jade-gui and blend-inst
     exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui', 'blend-inst-git'])
 
