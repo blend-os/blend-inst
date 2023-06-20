@@ -262,6 +262,9 @@ def inst_bootloader(config):
     else:
         exec_chroot(
             ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} vt.global_cursor_default=0 splash"\' >> /etc/default/grub'])
+    if config['partition']['mode'] == 'Auto':
+        exec_chroot(
+            ['bash', '-c', 'echo -e \'\\nGRUB_TIMEOUT=0\' >> /etc/default/grub'])
     if config['bootloader']['type'] == 'grub-efi':
         exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
                      '--bootloader-id=blend', '--removable'])
