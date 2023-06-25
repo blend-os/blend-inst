@@ -196,11 +196,13 @@ def inst_partition(config):
             format_and_mount(config, mountpoint, filesystem, blockdevice)
         if '/mnt/' not in mountpoints:
             print()
-            print("Invalid manual partitioning configuration. There must be a 'System' partition.")
+            print(
+                "Invalid manual partitioning configuration. There must be a 'System' partition.")
             sys.exit(1)
         if '/mnt/boot/' not in mountpoints and '/mnt/boot/efi/' not in mountpoints:
             print()
-            print("Invalid manual partitioning configuration. There must be a 'Boot' partition.")
+            print(
+                "Invalid manual partitioning configuration. There must be a 'Boot' partition.")
             sys.exit(1)
 
 
@@ -361,6 +363,10 @@ def inst_users(config):
     exec_chroot(
         ['bash', '-c', 'echo "Current=breeze" >> /etc/sddm.conf.d/default.conf'])
     exec_chroot(['rm', '-f', '/etc/gdm/custom.conf'])
+
+    # Create ~/.local/share/applications with right perms
+    exec_chroot(['sudo', '-u', user['name'], 'mkdir', '-p',
+                f'/home/{user["name"]}/.local/share/applications'])
 
 
 ########################################################################################
