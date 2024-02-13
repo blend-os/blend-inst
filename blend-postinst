@@ -162,7 +162,7 @@ def inst_users(config):
 
 
 def inst_akshara():
-    exec(['akshara', 'update'])
+    exec(['env', 'AKSHARA_INSTALL=1', 'akshara', 'update'])
 
 
 ########################################################################################
