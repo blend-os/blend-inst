@@ -244,19 +244,19 @@ def inst_setup_base(config):
     exec(['bash', '-c', 'genfstab -U /mnt > /mnt/etc/fstab'])
     # Refresh package lists, pacman-key --init
     exec_chroot(['pacman-key', '--init'])
-    exec_chroot(['pacman-key', '--populate', 'archlinux', 'blend'])
+    exec_chroot(['pacman-key', '--populate', 'archlinux'])
     # Install linux-zen
     exec_chroot(['pacman', '-Sy', '--noconfirm', 'linux-zen', 'xorriso'])
     # Remove jade-gui
     exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui'])
     # Install jade-gui-postinst
-    exec_chroot(['pacman', '-S', 'jade-gui-postinst'])
+    exec_chroot(['pacman', '-S', '--noconfirm', 'jade-gui-postinst'])
 
 
 def inst_bootloader(config):
     # Install bootloader
     if 'NVIDIA' in subprocess.check_output(['lspci']).decode('utf-8'):
-        exec_chroot(['pacman', '-Sy', '--noconfirm', 'nvidia-dkms'])
+        exec_chroot(['pacman', '-S', '--noconfirm', 'nvidia-dkms'])
         exec_chroot(
             ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} vt.global_cursor_default=0 nvidia_drm.modeset=1 splash"\' >> /etc/default/grub'])
         mkdir('/mnt/etc/udev/rules.d')
