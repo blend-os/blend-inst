@@ -229,8 +229,6 @@ def inst_setup_base(config):
     else:
         exec(['unsquashfs', '-f', '-d', '/mnt',
               '/run/archiso/bootmnt/blend/x86_64/airootfs.sfs'])
-    # Enable system services
-    enable_service('akshara')
     enable_service('bluetooth')
     enable_service('cups')
     # Enable blend-files
@@ -239,7 +237,7 @@ def inst_setup_base(config):
     exec_chroot(['bash', '-c', 'echo \'MODULES=""\' > /etc/mkinitcpio.conf'])
     exec_chroot(['bash', '-c', 'echo \'BINARIES=""\' >> /etc/mkinitcpio.conf'])
     exec_chroot(['bash', '-c', 'echo \'FILES=""\' >> /etc/mkinitcpio.conf'])
-    exec_chroot(['bash', '-c', 'echo \'HOOKS="base udev akshara plymouth autodetect modconf block keyboard keymap consolefont filesystems fsck"\' >> /etc/mkinitcpio.conf'])
+    exec_chroot(['bash', '-c', 'echo \'HOOKS="base udev plymouth autodetect modconf block keyboard keymap consolefont filesystems fsck"\' >> /etc/mkinitcpio.conf'])
     exec_chroot(
         ['bash', '-c', 'echo \'COMPRESSION="zstd"\' >> /etc/mkinitcpio.conf'])
     # Generate fstab
@@ -249,13 +247,16 @@ def inst_setup_base(config):
     exec_chroot(['pacman-key', '--populate', 'archlinux', 'blend'])
     # Install linux-zen
     exec_chroot(['pacman', '-Sy', '--noconfirm', 'linux-zen', 'xorriso'])
-    # Remove jade-gui and blend-inst
-    exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui', 'blend-inst-git'])
+    # Remove jade-gui
+    exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui'])
+    # Install jade-gui-postinst
+    exec_chroot(['pacman', '-S', 'jade-gui-post-inst'])
 
 
 def inst_bootloader(config):
     # Install bootloader
     if 'NVIDIA' in subprocess.check_output(['lspci']).decode('utf-8'):
+        exec_chroot(['pacman', '-Sy', '--noconfirm', 'nvidia-dkms'])
         exec_chroot(
             ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} vt.global_cursor_default=0 nvidia_drm.modeset=1 splash"\' >> /etc/default/grub'])
         mkdir('/mnt/etc/udev/rules.d')
@@ -328,8 +329,7 @@ def inst_networking(config):
 
 
 def inst_users(config):
-    # Create sudoers
-    exec_chroot(['bash', '-c', 'userdel -r blend &>/dev/null'])
+    # Write files
     exec_chroot(
         ['bash', '-c', 'echo "root ALL=(ALL:ALL) ALL" > /etc/sudoers'])
     exec_chroot(
@@ -338,35 +338,34 @@ def inst_users(config):
         ['bash', '-c', 'echo "Defaults pwfeedback" >> /etc/sudoers']
     )
 
-    # Add users
-    for user in config['users']:
-        if user['name'] == 'blend':
-            print()
-            print('The username blend is not allowed.')
-            sys.exit(3)
-
-        exec_chroot(['useradd', '-m', '-s', '/bin/bash', user['name']])
-        exec_chroot(['usermod', '-c', user['fullname'], user['name']])
-        exec_chroot(
-            ['bash', '-c', f'echo \'{user["name"]}:{user["password"]}\' | chpasswd'])
-        exec_chroot(['usermod', '-aG', 'wheel', user['name']])
-        # Add AccountsService user file
-        mkdir('/mnt/var/lib/AccountsService/users')
-        exec_chroot(
-            ['bash', '-c', f'echo "[User]" > /var/lib/AccountsService/users/{user["name"]}'])
-        exec_chroot(
-            ['bash', '-c', f'echo "SystemAccount=false" >> /var/lib/AccountsService/users/{user["name"]}'])
-
-    # Update display manager configuration
     exec_chroot(
-        ['bash', '-c', 'echo "[Theme]" > /etc/sddm.conf.d/default.conf'])
-    exec_chroot(
-        ['bash', '-c', 'echo "Current=breeze" >> /etc/sddm.conf.d/default.conf'])
-    exec_chroot(['rm', '-f', '/etc/gdm/custom.conf'])
+        ['bash', '-c', 'echo \'{"hasWindows":true,"components":["networkAgent"],"panel":{"left":[],"center":[],"right":["a11y","keyboard","quickSettings"]}}\' > /usr/share/gnome-shell/modes/jade-gui.json'])
 
-    # Create ~/.local/share/applications with right perms
-    exec_chroot(['sudo', '-u', user['name'], 'mkdir', '-p',
-                f'/home/{user["name"]}/.local/share/applications'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'[GNOME Session]\' >> /usr/share/gnome-session/sessions/jade-gui.session'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'Name=First Setup\' >> /usr/share/gnome-session/sessions/jade-gui.session'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'RequiredComponents=org.gnome.Shell;al.getcryst.jadegui;org.gnome.SettingsDaemon.A11ySettings;org.gnome.SettingsDaemon.Clipboard;org.gnome.SettingsDaemon.Color;org.gnome.SettingsDaemon.Datetime;org.gnome.SettingsDaemon.Housekeeping;org.gnome.SettingsDaemon.Keyboard;org.gnome.SettingsDaemon.MediaKeys;org.gnome.SettingsDaemon.Mouse;org.gnome.SettingsDaemon.Power;org.gnome.SettingsDaemon.PrintNotifications;org.gnome.SettingsDaemon.Rfkill;org.gnome.SettingsDaemon.ScreensaverProxy;org.gnome.SettingsDaemon.Sharing;org.gnome.SettingsDaemon.Smartcard;org.gnome.SettingsDaemon.Sound;org.gnome.SettingsDaemon.Wacom;org.gnome.SettingsDaemon.XSettings;\' >> /usr/share/gnome-session/sessions/jade-gui.session'])
+
+    exec_chroot(['bash', '-c', 'rm -rf /usr/share/xsessions/*'])
+    exec_chroot(['bash', '-c', 'rm -rf /usr/share/wayland-sessions/*'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'[Desktop Entry]\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'Type=Application\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'Name=First Setup\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'Exec=gnome-shell --builtin --mode=jade-gui\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'X-GNOME-AutoRestart=true\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'X-GNOME-Autostart-Phase=DisplayServer\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'X-GNOME-Provides=panel;windowmanager;\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+    exec_chroot(
+        ['bash', '-c', 'echo \'X-GNOME-Autostart-Notify=true\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
 
 
 ########################################################################################
