@@ -17,4 +17,5 @@ pkgver() {
 package() {
     cd "${srcdir}/git-inst"
     install -Dm755 blend-inst -t "${pkgdir}/usr/bin/"
+    install -Dm755 blend-postinst -t "${pkgdir}/usr/bin/"
 }
