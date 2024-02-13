@@ -250,7 +250,7 @@ def inst_setup_base(config):
     # Remove jade-gui
     exec_chroot(['pacman', '-Rn', '--noconfirm', 'jade-gui'])
     # Install jade-gui-postinst
-    exec_chroot(['pacman', '-S', 'jade-gui-post-inst'])
+    exec_chroot(['pacman', '-S', 'jade-gui-postinst'])
 
 
 def inst_bootloader(config):
