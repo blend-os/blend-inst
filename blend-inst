@@ -339,14 +339,15 @@ def inst_users(config):
     )
 
     exec_chroot(
-        ['bash', '-c', 'echo \'{"hasWindows":true,"components":["networkAgent"],"panel":{"left":[],"center":[],"right":["a11y","keyboard","quickSettings"]}}\' > /usr/share/gnome-shell/modes/jade-gui.json'])
-
+        ['bash', '-c', 'echo \'#!/bin/sh\' > /usr/bin/jade-gui-session'])
     exec_chroot(
-        ['bash', '-c', 'echo \'[GNOME Session]\' >> /usr/share/gnome-session/sessions/jade-gui.session'])
+        ['bash', '-c', 'echo \'mutter --wayland &\' >> /usr/bin/jade-gui-session'])
     exec_chroot(
-        ['bash', '-c', 'echo \'Name=First Setup\' >> /usr/share/gnome-session/sessions/jade-gui.session'])
+        ['bash', '-c', 'echo \'sleep 5\' >> /usr/bin/jade-gui-session'])
     exec_chroot(
-        ['bash', '-c', 'echo \'RequiredComponents=org.gnome.Shell;al.getcryst.jadegui;org.gnome.SettingsDaemon.A11ySettings;org.gnome.SettingsDaemon.Clipboard;org.gnome.SettingsDaemon.Color;org.gnome.SettingsDaemon.Datetime;org.gnome.SettingsDaemon.Housekeeping;org.gnome.SettingsDaemon.Keyboard;org.gnome.SettingsDaemon.MediaKeys;org.gnome.SettingsDaemon.Mouse;org.gnome.SettingsDaemon.Power;org.gnome.SettingsDaemon.PrintNotifications;org.gnome.SettingsDaemon.Rfkill;org.gnome.SettingsDaemon.ScreensaverProxy;org.gnome.SettingsDaemon.Sharing;org.gnome.SettingsDaemon.Smartcard;org.gnome.SettingsDaemon.Sound;org.gnome.SettingsDaemon.Wacom;org.gnome.SettingsDaemon.XSettings;\' >> /usr/share/gnome-session/sessions/jade-gui.session'])
+        ['bash', '-c', 'echo \'jade-gui\' >> /usr/bin/jade-gui-session'])
+    exec_chroot(
+        ['bash', '-c', 'chmod 755 /usr/bin/jade-gui-session'])
 
     exec_chroot(['bash', '-c', 'rm -rf /usr/share/xsessions/*'])
     exec_chroot(['bash', '-c', 'rm -rf /usr/share/wayland-sessions/*'])
@@ -357,15 +358,7 @@ def inst_users(config):
     exec_chroot(
         ['bash', '-c', 'echo \'Name=First Setup\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
     exec_chroot(
-        ['bash', '-c', 'echo \'Exec=gnome-shell --builtin --mode=jade-gui\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'X-GNOME-AutoRestart=true\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'X-GNOME-Autostart-Phase=DisplayServer\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'X-GNOME-Provides=panel;windowmanager;\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'X-GNOME-Autostart-Notify=true\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+        ['bash', '-c', 'echo \'Exec=/usr/bin/jade-gui-session\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
 
 
 ########################################################################################

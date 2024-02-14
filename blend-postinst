@@ -78,7 +78,7 @@ def inst_system_config(config):
         ]
 
     if testing == False:
-        with open('/system.yaml') as system_config_file:
+        with open('/system.yaml', 'w') as system_config_file:
             yaml.dump(system_config, system_config_file)
     else:
         print(system_config)
