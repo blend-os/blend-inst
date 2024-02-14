@@ -233,13 +233,6 @@ def inst_setup_base(config):
     enable_service('cups')
     # Enable blend-files
     enable_user_service('blend-files')
-    # Add blend hook
-    exec_chroot(['bash', '-c', 'echo \'MODULES=""\' > /etc/mkinitcpio.conf'])
-    exec_chroot(['bash', '-c', 'echo \'BINARIES=""\' >> /etc/mkinitcpio.conf'])
-    exec_chroot(['bash', '-c', 'echo \'FILES=""\' >> /etc/mkinitcpio.conf'])
-    exec_chroot(['bash', '-c', 'echo \'HOOKS="base udev plymouth autodetect modconf block keyboard keymap consolefont filesystems fsck"\' >> /etc/mkinitcpio.conf'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'COMPRESSION="zstd"\' >> /etc/mkinitcpio.conf'])
     # Generate fstab
     exec(['bash', '-c', 'genfstab -U /mnt > /mnt/etc/fstab'])
     # Refresh package lists, pacman-key --init
@@ -302,6 +295,9 @@ def inst_networking(config):
 
 
 def inst_users(config):
+    exec_chroot(['useradd', 'gnome-initial-setup'])
+    exec_chroot(['userdel', '-r', 'blend'])
+
     # Write files
     exec_chroot(
         ['bash', '-c', 'echo "root ALL=(ALL:ALL) ALL" > /etc/sudoers'])
@@ -312,26 +308,43 @@ def inst_users(config):
     )
 
     exec_chroot(
-        ['bash', '-c', 'echo \'#!/bin/sh\' > /usr/bin/jade-gui-session'])
+        ['bash', '-c', 'echo "[Theme]" > /etc/sddm.conf.d/default.conf'])
     exec_chroot(
-        ['bash', '-c', 'echo \'mutter --wayland &\' >> /usr/bin/jade-gui-session'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'sleep 5\' >> /usr/bin/jade-gui-session'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'jade-gui\' >> /usr/bin/jade-gui-session'])
-    exec_chroot(
-        ['bash', '-c', 'chmod 755 /usr/bin/jade-gui-session'])
+        ['bash', '-c', 'echo "Current=breeze" >> /etc/sddm.conf.d/default.conf'])
 
-    exec_chroot(['bash', '-c', 'rm -rf /usr/share/xsessions/*'])
-    exec_chroot(['bash', '-c', 'rm -rf /usr/share/wayland-sessions/*'])
     exec_chroot(
-        ['bash', '-c', 'echo \'[Desktop Entry]\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+        ['bash', '-c', 'echo "[daemon]" > /etc/gdm/custom.conf'])
     exec_chroot(
-        ['bash', '-c', 'echo \'Type=Application\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'Name=First Setup\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
-    exec_chroot(
-        ['bash', '-c', 'echo \'Exec=/usr/bin/jade-gui-session\' >> /usr/share/wayland-sessions/jade-gui.desktop'])
+        ['bash', '-c', 'echo "InitialSetupEnable=true" >> /etc/gdm/custom.conf'])
+
+
+########################################################################################
+# Akshara
+
+def inst_akshara(config):
+    system_config = {
+        'repo': 'https://pkg-repo.blendos.co',
+        'impl': 'http://github.com/blend-os/tracks/raw/main',
+        'track': 'default-gnome'
+        
+    }
+    if 'NVIDIA' in subprocess.check_output(['lspci']).decode('utf-8'):
+        system_config['packages'] = [
+            'nvidia-dkms',
+            'nvidia-prime',
+            'switcheroo-control'
+        ]
+
+        system_config['services'] = [
+            'switcheroo-control'
+        ]
+
+    if testing == False:
+        with open('/system.yaml', 'w') as system_config_file:
+            yaml.dump(system_config, system_config_file)
+    else:
+        print(system_config)
+    exec_chroot(['env', 'AKSHARA_INSTALL=1', 'akshara', 'update'])
 
 
 ########################################################################################
@@ -351,6 +364,7 @@ try:
             inst_bootloader(config)
             inst_networking(config)
             inst_users(config)
+            inst_akshara(config)
 
         print()
         print('========================')
