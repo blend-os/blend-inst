@@ -133,10 +133,9 @@ def inst_networking(config):
 
 
 def inst_users(config):
-    exec_chroot(['bash', '-c', 'userdel -r blend &>/dev/null'])
-
     for home_dir in os.listdir('/home'):
-        exec(['rm', '-rf', '/home/' + home_dir])
+        if not home_dir == 'blend':
+            exec(['rm', '-rf', '/home/' + home_dir])
 
     # Add users
     for user in config['users']:

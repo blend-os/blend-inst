@@ -281,33 +281,6 @@ def inst_bootloader(config):
 
 
 ########################################################################################
-# Locale
-
-
-def inst_locale(config):
-    # Set locale
-    exec_chroot(['bash', '-c', 'echo \'en_US.UTF-8 UTF-8\' > /etc/locale.gen'])
-    first_locale = True
-    for locale in config['locale']['locale']:
-        if locale != 'en_US.UTF-8 UTF-8':
-            exec_chroot(
-                ['bash', '-c', f'echo \'{locale}\' >> /etc/locale.gen'])
-        if first_locale:
-            exec_chroot(
-                ['bash', '-c', f'echo \'LANG={locale.split()[0]}\' > /etc/locale.conf'])
-            first_locale = False
-    exec_chroot(['locale-gen'])
-
-    # Set keyboard layout
-    exec_chroot(
-        ['bash', '-c', f'echo \'KEYMAP={config["locale"]["keymap"]}\' > /etc/vconsole.conf'])
-
-    # Set timezone
-    exec_chroot(
-        ['ln', '-sf', f'/usr/share/zoneinfo/{config["locale"]["timezone"]}', '/etc/localtime'])
-
-
-########################################################################################
 # Networking
 
 
@@ -376,7 +349,6 @@ try:
             inst_partition(config)
             inst_setup_base(config)
             inst_bootloader(config)
-            inst_locale(config)
             inst_networking(config)
             inst_users(config)
 
