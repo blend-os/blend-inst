@@ -10,6 +10,7 @@
 import os
 import sys
 import json
+import yaml
 import signal
 import subprocess
 
@@ -322,6 +323,16 @@ def inst_users(config):
 # Akshara
 
 def inst_akshara(config):
+    exec_chroot(
+            ['rm', '-f', '/etc/locale.gen'])
+    for locale in ['en_US.UTF-8', 'de_DE.UTF-8', 'fr_FR.UTF-8', 'es_ES.UTF-8', 'zh_CN.UTF-8', 'ja_JP.UTF-8', 'ru_RU.UTF-8', 'ar_EG.UTF-8']:
+        exec_chroot(
+            ['bash', '-c', f'echo "{locale}" >> /etc/locale.gen'])
+    exec_chroot(
+        ['locale-gen'])
+    exec_chroot(
+        ['bash', '-c', f'echo "LANG=en_US.UTF-8" >> /etc/locale.gen'])
+
     system_config = {
         'repo': 'https://pkg-repo.blendos.co',
         'impl': 'http://github.com/blend-os/tracks/raw/main',
@@ -340,7 +351,7 @@ def inst_akshara(config):
         ]
 
     if testing == False:
-        with open('/system.yaml', 'w') as system_config_file:
+        with open('/mnt/system.yaml', 'w') as system_config_file:
             yaml.dump(system_config, system_config_file)
     else:
         print(system_config)
