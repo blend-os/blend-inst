@@ -144,7 +144,7 @@ def inst_partition(config):
     password = config['partition']['password']
 
     # Delete partition table
-    exec(['dd', 'if=/dev/zero', f'of={device}', 'bs=512', 'count=1'])
+    exec(['wipefs', '-a',  f'of={device}', 'bs=512', 'count=1'])
     exec(['sync'])
 
     if mode == 'Auto':
@@ -169,14 +169,14 @@ def inst_partition(config):
             if efi:
                 exec(['mkfs.vfat', '-F32', f'{device}p1'])
             else:
-                exec(['mkfs.ext4', f'{device}p1'])
+                exec(['mkfs.ext4', '-F', f'{device}p1'])
             root_partition = f'{device}p2'
             if password != '':
                 exec(['cryptsetup', '-q', 'luksFormat', root_partition], input=f'{password}\n')
                 exec(['cryptsetup', 'open', root_partition, 'new_root', '-'], input=f'{password}\n')
                 root_partition = '/dev/mapper/new_root'
             # Format root partition
-            exec(['mkfs.ext4', root_partition])
+            exec(['mkfs.ext4', '-F', root_partition])
             # Mount partitions
             mount(root_partition, '/mnt')
             if efi:
@@ -190,14 +190,14 @@ def inst_partition(config):
             if efi:
                 exec(['mkfs.vfat', '-F32', f'{device}1'])
             else:
-                exec(['mkfs.ext4', f'{device}1'])
+                exec(['mkfs.ext4', '-F', f'{device}1'])
             root_partition = f'{device}2'
             if password != '':
                 exec(['cryptsetup', '-q', 'luksFormat', root_partition], input=f'{password}\n')
                 exec(['cryptsetup', 'open', root_partition, 'new_root', '-'], input=f'{password}\n')
                 root_partition = '/dev/mapper/new_root'
             # Format root partition
-            exec(['mkfs.ext4', root_partition])
+            exec(['mkfs.ext4', '-F', root_partition])
             # Mount partitions
             mount(root_partition, '/mnt')
             if efi:
@@ -258,13 +258,13 @@ def inst_setup_base(config):
     exec_chroot(['pacman-key', '--init'])
     exec_chroot(['pacman-key', '--populate', 'archlinux'])
     # Add akshara and encrypt hooks
-    exec_chroot('bash', '-c', 'echo "MODULES=()" > /etc/mkinitcpio.conf')
-    exec_chroot('bash', '-c', 'echo "BINARIES=()" >> /etc/mkinitcpio.conf')
-    exec_chroot('bash', '-c', 'echo "FILES=()" >> /etc/mkinitcpio.conf')
+    exec_chroot(['bash', '-c', 'echo "MODULES=()" > /etc/mkinitcpio.conf'])
+    exec_chroot(['bash', '-c', 'echo "BINARIES=()" >> /etc/mkinitcpio.conf'])
+    exec_chroot(['bash', '-c', 'echo "FILES=()" >> /etc/mkinitcpio.conf'])
     if config['partition']['password'] == '':
-        exec_chroot('bash', '-c', 'echo "HOOKS=(base udev akshara autodetect keyboard keymap modconf block filesystems fsck)" >> /etc/mkinitcpio.conf')
+        exec_chroot(['bash', '-c', 'echo "HOOKS=(base udev akshara autodetect keyboard keymap modconf block filesystems fsck)" >> /etc/mkinitcpio.conf'])
     else:
-        exec_chroot('bash', '-c', 'echo "HOOKS=(base udev akshara autodetect keyboard keymap consolefont modconf block encrypt filesystems fsck)" >> /etc/mkinitcpio.conf')
+        exec_chroot(['bash', '-c', 'echo "HOOKS=(base udev akshara autodetect keyboard keymap consolefont modconf block encrypt filesystems fsck)" >> /etc/mkinitcpio.conf'])
     # Install linux-zen
     exec_chroot(['pacman', '-Sy', '--noconfirm', 'linux-zen', 'xorriso'])
     # Remove jade-gui
