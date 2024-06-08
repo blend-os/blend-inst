@@ -253,6 +253,14 @@ def inst_setup_base(config):
     # Refresh package lists, pacman-key --init
     exec_chroot(['pacman-key', '--init'])
     exec_chroot(['pacman-key', '--populate', 'archlinux'])
+    # Add akshara and encrypt hooks
+    exec_chroot('bash', '-c', 'echo "MODULES=()" > /etc/mkinitcpio.conf')
+    exec_chroot('bash', '-c', 'echo "BINARIES=()" >> /etc/mkinitcpio.conf')
+    exec_chroot('bash', '-c', 'echo "FILES=()" >> /etc/mkinitcpio.conf')
+    if config['partition']['password'] == '':
+        exec_chroot('bash', '-c', 'echo "HOOKS=(base udev akshara autodetect keyboard keymap modconf block filesystems fsck)" >> /etc/mkinitcpio.conf')
+    else:
+        exec_chroot('bash', '-c', 'echo "HOOKS=(base udev akshara autodetect keyboard keymap consolefont modconf block encrypt filesystems fsck)" >> /etc/mkinitcpio.conf')
     # Install linux-zen
     exec_chroot(['pacman', '-Sy', '--noconfirm', 'linux-zen', 'xorriso'])
     # Remove jade-gui
