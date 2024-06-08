@@ -115,10 +115,7 @@ def format_and_mount(config, mountpoint, filesystem, blockdevice):
         if mountpoint == 'System':
             mountpoint = '/mnt/'
         elif mountpoint == 'Boot':
-            if efi:
-                mountpoint = '/mnt/boot/efi/'
-            else:
-                mountpoint = '/mnt/boot/'
+            mountpoint = '/mnt/boot/'
         elif mountpoint == 'User':
             mountpoint = '/mnt/home/'
         else:
@@ -158,11 +155,11 @@ def inst_partition(config):
             exec(['parted', '-s', device, 'mklabel', 'msdos'])
             # Create boot partition
             exec(['parted', '-s', device, 'mkpart',
-                 'primary', 'ext4', '1MIB', '600MIB'])
+                 'primary', 'ext4', '1MIB', '1400MIB'])
 
         # Create root partition
         exec(['parted', '-s', device, 'mkpart',
-             'primary', 'ext4', '700MB', '100%'])
+             'primary', 'ext4', '1500MB', '100%'])
 
         global orig_main_partition
 
@@ -182,12 +179,8 @@ def inst_partition(config):
             exec(['mkfs.ext4', '-F', root_partition])
             # Mount partitions
             mount(root_partition, '/mnt')
-            if efi:
-                mkdir('/mnt/boot/efi')
-                mount(f'{device}p1', '/mnt/boot/efi')
-            else:
-                mkdir('/mnt/boot')
-                mount(f'{device}p1', '/mnt/boot')
+            mkdir('/mnt/boot')
+            mount(f'{device}p1', '/mnt/boot')
         else:
             # Format EFI/boot partition
             if efi:
@@ -204,12 +197,8 @@ def inst_partition(config):
             exec(['mkfs.ext4', '-F', root_partition])
             # Mount partitions
             mount(root_partition, '/mnt')
-            if efi:
-                mkdir('/mnt/boot/efi')
-                mount(f'{device}1', '/mnt/boot/efi')
-            else:
-                mkdir('/mnt/boot')
-                mount(f'{device}1', '/mnt/boot')
+            mkdir('/mnt/boot')
+            mount(f'{device}1', '/mnt/boot')
     else:
         partitions.sort(key=lambda x: len(x[1]))
         for p in partitions:
@@ -222,7 +211,7 @@ def inst_partition(config):
             print(
                 "Invalid manual partitioning configuration. There must be a 'System' partition.")
             sys.exit(1)
-        if '/mnt/boot/' not in mountpoints and '/mnt/boot/efi/' not in mountpoints:
+        if '/mnt/boot/' not in mountpoints:
             print()
             print(
                 "Invalid manual partitioning configuration. There must be a 'Boot' partition.")
@@ -293,9 +282,9 @@ def inst_bootloader(config):
         exec_chroot(
             ['bash', '-c', 'echo -e \'\\nGRUB_TIMEOUT=3\' >> /etc/default/grub'])
     if config['bootloader']['type'] == 'grub-efi':
-        exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
+        exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory=/boot',
                      '--bootloader-id=blend', '--removable'])
-        exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
+        exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory=/boot',
                      '--bootloader-id=blend'])
     else:
         exec_chroot(['grub-install', '--target=i386-pc',
