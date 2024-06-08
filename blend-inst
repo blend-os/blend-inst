@@ -32,12 +32,15 @@ def preexec():
     signal.signal(signal.SIGQUIT, signal.SIG_IGN)
 
 
-def exec(cmd):
+def exec(cmd, input=None):
     if testing:
-        print(' '.join(cmd))
+        if input != None:
+            print(' '.join(cmd), '<--', input)
+        else:
+            print(' '.join(cmd))
     else:
-        subprocess.call(cmd, shell=False, stdout=sys.stdout,
-                        stderr=sys.stderr, preexec_fn=preexec)
+        subprocess.run(cmd, shell=False, stdout=sys.stdout,
+                        stderr=sys.stderr, preexec_fn=preexec, input=input.encode()).returncode
 
 
 def exec_chroot(cmd):
@@ -134,6 +137,7 @@ def inst_partition(config):
     mode = config['partition']['mode']
     efi = config['partition']['efi']
     partitions = config['partition']['partitions']
+    password = config['partition']['password']
 
     # Delete partition table
     exec(['dd', 'if=/dev/zero', f'of={device}', 'bs=512', 'count=1'])
@@ -162,10 +166,15 @@ def inst_partition(config):
                 exec(['mkfs.vfat', '-F32', f'{device}p1'])
             else:
                 exec(['mkfs.ext4', f'{device}p1'])
+            root_partition = f'{device}p2'
+            if password != '':
+                exec(['cryptsetup', '-q', 'luksFormat', root_partition], input=f'{password}\n')
+                exec(['cryptsetup', 'open', root_partition, 'new_root', '-'], input=f'{password}\n')
+                root_partition = '/dev/mapper/new_root'
             # Format root partition
-            exec(['mkfs.ext4', f'{device}p2'])
+            exec(['mkfs.ext4', root_partition])
             # Mount partitions
-            mount(f'{device}p2', '/mnt')
+            mount(root_partition, '/mnt')
             if efi:
                 mkdir('/mnt/boot/efi')
                 mount(f'{device}p1', '/mnt/boot/efi')
@@ -178,10 +187,15 @@ def inst_partition(config):
                 exec(['mkfs.vfat', '-F32', f'{device}1'])
             else:
                 exec(['mkfs.ext4', f'{device}1'])
+            root_partition = f'{device}2'
+            if password != '':
+                exec(['cryptsetup', '-q', 'luksFormat', root_partition], input=f'{password}\n')
+                exec(['cryptsetup', 'open', root_partition, 'new_root', '-'], input=f'{password}\n')
+                root_partition = '/dev/mapper/new_root'
             # Format root partition
-            exec(['mkfs.ext4', f'{device}2'])
+            exec(['mkfs.ext4', root_partition])
             # Mount partitions
-            mount(f'{device}2', '/mnt')
+            mount(root_partition, '/mnt')
             if efi:
                 mkdir('/mnt/boot/efi')
                 mount(f'{device}1', '/mnt/boot/efi')
