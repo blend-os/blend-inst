@@ -143,11 +143,11 @@ def inst_partition(config):
     partitions = config['partition']['partitions']
     password = config['partition']['password']
 
-    # Delete partition table
-    exec(['wipefs', '-a',  f'of={device}', 'bs=512', 'count=1'])
-    exec(['sync'])
-
     if mode == 'Auto':
+        # Delete partition table
+        exec(['wipefs', '-a', device])
+        exec(['sync'])
+
         if efi:
             # Create GPT label
             exec(['parted', '-s', device, 'mklabel', 'gpt'])
@@ -164,6 +164,8 @@ def inst_partition(config):
         exec(['parted', '-s', device, 'mkpart',
              'primary', 'ext4', '700MB', '100%'])
 
+        global orig_main_partition
+
         if 'nvme' in device or 'mmcblk' in device:
             # Format EFI/boot partition
             if efi:
@@ -171,6 +173,7 @@ def inst_partition(config):
             else:
                 exec(['mkfs.ext4', '-F', f'{device}p1'])
             root_partition = f'{device}p2'
+            orig_main_partition = root_partition
             if password != '':
                 exec(['cryptsetup', '-q', 'luksFormat', root_partition], input=f'{password}\n')
                 exec(['cryptsetup', 'open', root_partition, 'new_root', '-'], input=f'{password}\n')
@@ -192,6 +195,7 @@ def inst_partition(config):
             else:
                 exec(['mkfs.ext4', '-F', f'{device}1'])
             root_partition = f'{device}2'
+            orig_main_partition = root_partition
             if password != '':
                 exec(['cryptsetup', '-q', 'luksFormat', root_partition], input=f'{password}\n')
                 exec(['cryptsetup', 'open', root_partition, 'new_root', '-'], input=f'{password}\n')
@@ -274,18 +278,20 @@ def inst_setup_base(config):
 def inst_bootloader(config):
     # Install bootloader
     if 'NVIDIA' in subprocess.check_output(['lspci']).decode('utf-8'):
-        exec_chroot(['pacman', '-S', '--noconfirm', 'nvidia-dkms'])
         exec_chroot(
-            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} vt.global_cursor_default=0 nvidia_drm.modeset=1 splash"\' >> /etc/default/grub'])
+            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} nvidia_drm.modeset=1 splash"\' >> /etc/default/grub'])
         mkdir('/mnt/etc/udev/rules.d')
         exec_chroot(['ln', '-s', '/dev/null',
                     '/etc/udev/rules.d/61-gdm.rules'])
     else:
         exec_chroot(
-            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} vt.global_cursor_default=0 splash"\' >> /etc/default/grub'])
+            ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} splash"\' >> /etc/default/grub'])
     if config['partition']['mode'] == 'Auto':
+        if config['partition']['password'] != '':
+            exec_chroot(
+                ['bash', '-c', 'echo -e \'\\nGRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} cryptdevice=UUID=' + subprocess.check_output(['blkid', '-s', 'UUID', '-o', 'value', orig_main_partition]).decode('UTF-8').strip() + ':root root=/dev/mapper/root"\' >> /etc/default/grub'])
         exec_chroot(
-            ['bash', '-c', 'echo -e \'\\nGRUB_TIMEOUT=0\' >> /etc/default/grub'])
+            ['bash', '-c', 'echo -e \'\\nGRUB_TIMEOUT=3\' >> /etc/default/grub'])
     if config['bootloader']['type'] == 'grub-efi':
         exec_chroot(['grub-install', '--target=x86_64-efi', f'--efi-directory={config["bootloader"]["location"]}',
                      '--bootloader-id=blend', '--removable'])
