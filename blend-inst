@@ -39,8 +39,12 @@ def exec(cmd, input=None):
         else:
             print(' '.join(cmd))
     else:
-        subprocess.run(cmd, shell=False, stdout=sys.stdout,
-                        stderr=sys.stderr, preexec_fn=preexec, input=input.encode()).returncode
+        if input != None:
+            subprocess.run(cmd, shell=False, stdout=sys.stdout,
+                            stderr=sys.stderr, preexec_fn=preexec, input=input.encode()).returncode
+        else:
+            subprocess.run(cmd, shell=False, stdout=sys.stdout,
+                            stderr=sys.stderr, preexec_fn=preexec).returncode
 
 
 def exec_chroot(cmd):
