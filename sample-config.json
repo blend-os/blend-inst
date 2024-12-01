@@ -3,6 +3,7 @@
         "device": "/dev/randomdisk",
         "mode": "Manual",
         "efi": true,
+        "password": "userpass",
         "partitions": [
             "System:/dev/randomdisk1:ext4",
             "Boot:/dev/randomdisk2:fat32"
@@ -26,7 +27,7 @@
     "users": [
         {
             "name": "user",
-            "password": "SOME_PLAINTEXT_PASSWORD",
+            "password": "userpass",
             "shell": "bash"
         }
     ],
