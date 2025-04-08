@@ -149,17 +149,17 @@ def inst_partition(config):
             # Create GPT label
             exec(['parted', '-s', device, 'mklabel', 'gpt'])
             # Create EFI partition
-            exec(['parted', '-s', device, 'mkpart', 'fat32', '0', '500'])
+            exec(['parted', '-s', device, 'mkpart', 'fat32', '0%', '512MiB'])
         else:
             # Create msdos label
             exec(['parted', '-s', device, 'mklabel', 'msdos'])
             # Create boot partition
             exec(['parted', '-s', device, 'mkpart',
-                 'primary', 'ext4', '1MIB', '1400MIB'])
+                 'primary', 'ext4', '0%', '512MiB'])
 
         # Create root partition
         exec(['parted', '-s', device, 'mkpart',
-             'primary', 'ext4', '1500MB', '100%'])
+             'primary', 'ext4', '513MiB', '100%'])
 
         global orig_main_partition
 
