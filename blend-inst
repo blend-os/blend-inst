@@ -351,6 +351,7 @@ def inst_akshara(config):
         ['locale-gen'])
 
     system_config = {
+        'arch-repo': 'https://geo.mirror.pkgbuild.com',
         'repo': 'https://pkg-repo.blendos.co',
         'impl': 'http://github.com/blend-os/tracks/raw/main',
         'track': 'default-gnome'
