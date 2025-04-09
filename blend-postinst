@@ -61,6 +61,7 @@ def mkdir(path):
 
 def inst_system_config(config):
     system_config = {
+        'arch-repo': 'https://geo.mirror.pkgbuild.com',
         'repo': 'https://pkg-repo.blendos.co',
         'impl': 'http://github.com/blend-os/tracks/raw/main',
         'track': 'default-gnome'
