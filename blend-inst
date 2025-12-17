@@ -41,7 +41,7 @@ def exec(cmd, input=None):
     else:
         if input != None:
             subprocess.run(cmd, shell=False, stdout=sys.stdout,
-                            stderr=sys.stderr, check=True, preexec_fn=preexec, input=input.encode(), check=True).returncode
+                            stderr=sys.stderr, check=True, preexec_fn=preexec, input=input.encode()).returncode
         else:
             subprocess.run(cmd, shell=False, stdout=sys.stdout,
                             stderr=sys.stderr, check=True, preexec_fn=preexec).returncode
