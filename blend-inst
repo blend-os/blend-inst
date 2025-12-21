@@ -41,10 +41,10 @@ def exec(cmd, input=None):
     else:
         if input != None:
             subprocess.run(cmd, shell=False, stdout=sys.stdout,
-                            stderr=sys.stderr, check=True, preexec_fn=preexec, input=input.encode()).returncode
+                            stderr=sys.stderr, preexec_fn=preexec, input=input.encode()).returncode
         else:
             subprocess.run(cmd, shell=False, stdout=sys.stdout,
-                            stderr=sys.stderr, check=True, preexec_fn=preexec).returncode
+                            stderr=sys.stderr, preexec_fn=preexec).returncode
 
 
 def exec_chroot(cmd):
