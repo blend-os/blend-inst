@@ -13,7 +13,7 @@
 ```sh
 # 1. Clone this repository
 
-git clone 'https://github.com/blend-os/blend-inst'
+git clone 'https://git.blendos.co/blendos/system-tools/blend-inst'
 
 # 2. Run the installer with the sample configuration in testing mode,
 #    which will simply print out the commands that will run in a true
@@ -35,7 +35,7 @@ Jade-GUI, developed by Crystal Linux, can be used with blend-inst.
 
 ## Contributing
 
-Anyone is free to contribute to blend-inst! It's licensed under the GPL-3.0 license. You can create a PR from the 'Pull Requests' tab on GitHub. You're requested to use `autopep8` to format your Python code before creating a pull request.
+Anyone is free to contribute to blend-inst! It's licensed under the GPL-3.0 license. You can create an MR from the 'Merge Requests' tab on the blendOS Gitlab instance. You're requested to use `autopep8` to format your Python code before creating a merge request.
 
 ## Credits
 
